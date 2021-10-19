@@ -4,7 +4,11 @@ import { ClientService, GenericOptions } from './types';
 
 export let __Schema: any;
 
-class Client<
+export const defaultOptions: GenericOptions = {
+  cluster: { count: -1, id: -1 }
+};
+
+export default class Client<
   C extends keyof typeof Clients,
   O extends ClientOptions[C]
 > extends EventEmitter {
@@ -18,7 +22,7 @@ class Client<
         },
     token: string,
     schema: any,
-    options?: GenericOptions
+    options: GenericOptions
   ) {
     super();
     __Schema = schema;
@@ -30,5 +34,9 @@ class Client<
         options,
         protocol.options
       );
+  }
+
+  public connect() {
+    this.clientService.connect();
   }
 }

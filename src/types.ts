@@ -6,16 +6,16 @@ export declare interface Data {
 }
 
 export declare enum GenericCloseCodes {
-  ServerRestarting,
-  InvalidData,
-  ServerError,
-  NotReadyForData
+  OK,
+  ClientError
 }
 
 export declare interface Events {
   connected: () => void;
   disconnected: (code: number | Error) => void;
+  cluster_status: (count: number, connected: number[]) => void;
   CCCQuery: (data: string, cb: (output: string) => void) => void;
+  data_pushed: () => void;
 }
 
 export declare interface GenericOptions {

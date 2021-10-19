@@ -1,7 +1,7 @@
 import ws from 'ws';
 import EventEmitter from 'events';
 import { GenericCloseCodes, ClientService, GenericOptions } from '../types';
-import { __Schema } from '..';
+import { defaultOptions, __Schema } from '..';
 
 function deepCompareJSON(arg1: any, arg2: any): boolean {
   if (
@@ -46,6 +46,21 @@ interface __WSClient extends ws {
   sendPayload(payload: PayloadStructure<any>): void;
 }
 
+function genericToWSCloseCode(code: GenericCloseCodes): WSClientCloseCode {
+  let closeCode: WSClientCloseCode;
+  switch (code) {
+    case GenericCloseCodes.OK:
+      closeCode = WSClientCloseCode.Normal;
+      break;
+    case GenericCloseCodes.ClientError:
+      closeCode = WSClientCloseCode.Abnormal;
+      break;
+    default:
+      closeCode = WSClientCloseCode.NoStatus;
+  }
+  return closeCode;
+}
+
 export default class WSService extends EventEmitter implements ClientService {
   public name = 'ws';
   private token: string;
@@ -53,15 +68,58 @@ export default class WSService extends EventEmitter implements ClientService {
   public serviceOptions: WSOptions = {
     url: 'ws://localhost:8000/manager'
   };
-  public options: GenericOptions;
+  public options: GenericOptions = defaultOptions;
   async sendData(type: 0 | 1 | 2, data: any) {}
-  disconnect(code: GenericCloseCodes) {}
-  private __disconnect(code: WSClientCloseCode) {}
-  async startCCC(
+  disconnect(code: GenericCloseCodes) {
+    this.__disconnect(genericToWSCloseCode(code));
+  }
+  private __disconnect(code: WSClientCloseCode) {
+    this.client.close(code);
+    this.emit('disconnected', code);
+  }
+  startCCC(
     to: number | 'all',
     data: string
   ): Promise<{ id: string; data: string | string[] }> {
-    return { id: 'a', data };
+    return new Promise((resolve, reject) => {
+      this.client.sendPayload({
+        op: ClientOpCodes.CCCBegin,
+        d: { data, to }
+      } as PayloadStructure<ClientStructures.CCCBegin>);
+      let CCCConfirmHandler = (confData: ws.RawData) => {
+        let confParsed: PayloadStructure<ServerStructures.CCCConfirm>;
+        try {
+          confParsed = JSON.parse(confData.toString());
+        } catch (err) {
+          this.__disconnect(WSClientCloseCode.Abnormal);
+          reject('Server responded with malformed response.');
+          return;
+        }
+        if (confParsed.op !== ServerOpCodes.CCCConfirm) return;
+        else {
+          this.client.off('message', CCCConfirmHandler);
+          let CCCReturnHandler = (retData: ws.RawData) => {
+            let retParsed: PayloadStructure<ServerStructures.CCCReturn>;
+            try {
+              retParsed = JSON.parse(retData.toString());
+            } catch (err) {
+              this.__disconnect(WSClientCloseCode.Abnormal);
+              reject('Server responded with malformed response.');
+              return;
+            }
+
+            if (retParsed.op !== ServerOpCodes.CCCReturn) return;
+            else {
+              this.client.off('message', CCCReturnHandler);
+              resolve({ id: confParsed.d.id, data: retParsed.d.data });
+            }
+          };
+          this.client.on('message', CCCReturnHandler);
+        }
+      };
+
+      this.client.on('message', CCCConfirmHandler);
+    });
   }
   constructor(
     token: string,
@@ -71,7 +129,7 @@ export default class WSService extends EventEmitter implements ClientService {
     super();
     this.token = token;
     if (options) Object.assign(this.options, options);
-    if (serviceOptions) Object.assign(this.serviceOptions, options);
+    if (serviceOptions) Object.assign(this.serviceOptions, serviceOptions);
     this.client = createWSClient(this.serviceOptions.url);
   }
   connect() {
@@ -118,7 +176,8 @@ export default class WSService extends EventEmitter implements ClientService {
             if (parsed.op === ServerOpCodes.Heartbeat) {
               this.handleHeartbeat();
 
-              this.client.on('message', this.handleServerPayload);
+              this.client.on('message', this.handleServerPayload.bind(this));
+              this.emit('connected');
               resolve();
             } else {
               this.__disconnect(WSClientCloseCode.Abnormal);
@@ -137,12 +196,68 @@ export default class WSService extends EventEmitter implements ClientService {
 
   private handleHeartbeat() {
     clearTimeout(heartbeatTimeout);
-    this.client.sendPayload({
-      op: ClientOpCodes.Heartbeat
-    } as PayloadStructure<ClientStructures.Heartbeat>);
-    let heartbeatTimeoutFunction = () => {
+    setTimeout(() => {
+      if (this.client.readyState === this.client.OPEN)
+        this.client.sendPayload({
+          op: ClientOpCodes.Heartbeat
+        } as PayloadStructure<ClientStructures.Heartbeat>);
+    }, heartbeatInterval / 2);
+    setTimeout(() => {
       this.__disconnect(WSClientCloseCode.Normal);
-    };
+    }, heartbeatInterval);
+  }
+
+  private handleServerPayload(data: ws.RawData) {
+    let parsed: PayloadStructure<any>;
+    try {
+      parsed = JSON.parse(data.toString());
+    } catch (err) {
+      this.__disconnect(WSClientCloseCode.Abnormal);
+      return;
+    }
+    switch (parsed.op) {
+      case ServerOpCodes.Identify:
+        this.__disconnect(WSClientCloseCode.Abnormal);
+        break;
+      case ServerOpCodes.Heartbeat:
+        this.handleHeartbeat();
+        break;
+      case ServerOpCodes.ClusterStatus:
+        this.emit(
+          'cluster_status',
+          (parsed as PayloadStructure<ServerStructures.ClusterStatus>).d.count,
+          (parsed as PayloadStructure<ServerStructures.ClusterStatus>).d
+            .connected
+        );
+        break;
+      case ServerOpCodes.CCCPropagate:
+        let CCCQueryCB = (data: string) => {
+          this.client.sendPayload({
+            op: ClientOpCodes.CCCReturn,
+            d: {
+              data,
+              id: (parsed as PayloadStructure<ServerStructures.CCCPropagate>).d
+                .id
+            }
+          } as PayloadStructure<ClientStructures.CCCReturn>);
+        };
+        if (this.listeners('CCCQuery').length < 1) CCCQueryCB('Unhandled');
+        this.emit(
+          'CCCQuery',
+          (parsed as PayloadStructure<ServerStructures.CCCPropagate>).d.data,
+          CCCQueryCB
+        );
+        break;
+      case ServerOpCodes.DataPushed:
+        this.emit('data_pushed');
+        break;
+      case ServerOpCodes.CCCConfirm:
+      case ServerOpCodes.CCCReturn:
+      case ServerOpCodes.DataOK:
+        break;
+      default:
+        this.__disconnect(WSClientCloseCode.Abnormal);
+    }
   }
 }
 
@@ -171,7 +286,6 @@ export enum WSServerCloseCode {
   AuthenticationFailed = 4004,
   AlreadyAuthenticated = 4005,
   HeartbeatTimeout = 4006,
-  NotReadyForData = 4007,
   Ratelimited = 4008,
   InvalidCluster = 4010,
   InvalidClusterCount = 4011,
@@ -204,7 +318,9 @@ export namespace ServerStructures {
     heartbeatTimeout: number;
     schema: any;
   }
-  export interface DataOK {}
+  export interface DataACK {
+    success: boolean;
+  }
   export interface CCCPropagate {
     id: string;
     data: string;
