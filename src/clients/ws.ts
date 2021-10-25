@@ -130,10 +130,10 @@ export default class WSService extends EventEmitter implements ClientService {
     this.token = token;
     if (options) Object.assign(this.options, options);
     if (serviceOptions) Object.assign(this.serviceOptions, serviceOptions);
-    this.client = createWSClient(this.serviceOptions.url);
   }
   connect() {
     return new Promise<void>((resolve, reject) => {
+      this.client = createWSClient(this.serviceOptions.url);
       this.client.once('close', code => {
         reject(code);
       });

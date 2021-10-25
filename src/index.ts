@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 import Clients, { ClientOptions } from './clients';
-import { ClientService, GenericOptions } from './types';
+import { ClientService, GenericCloseCodes, GenericOptions } from './types';
 
 export let __Schema: any;
 
@@ -53,5 +53,8 @@ export default class Client<
   }
   public startCCC(to: number | 'all', data: string) {
     return this.clientService.startCCC(to, data);
+  }
+  public disconnect() {
+    this.clientService.disconnect(GenericCloseCodes.OK);
   }
 }

@@ -79,4 +79,5 @@ export default class Client<
     id: string;
     data: string | string[];
   }>;
+  disconnect(): void;
 }
