@@ -26,7 +26,7 @@ function deepCompareJSON(arg1: any, arg2: any): boolean {
 
 let serverSchema: any = null;
 let heartbeatInterval = -1;
-let heartbeatTimeout = -1;
+let heartbeatTimeout: NodeJS.Timer;
 
 function createWSClient(url: string) {
   let skt = new ws(url);
@@ -202,7 +202,7 @@ export default class WSService extends EventEmitter implements ClientService {
           op: ClientOpCodes.Heartbeat
         } as PayloadStructure<ClientStructures.Heartbeat>);
     }, heartbeatInterval / 2);
-    setTimeout(() => {
+    heartbeatTimeout = setTimeout(() => {
       this.__disconnect(WSClientCloseCode.Normal);
     }, heartbeatInterval);
   }
