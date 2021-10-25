@@ -34,9 +34,24 @@ export default class Client<
         options,
         protocol.options
       );
+
+    this.clientService.on('CCCQuery', (data, cb) =>
+      this.emit('CCCQuery', data, cb)
+    );
+    this.clientService.on('cluster_status', (...args) =>
+      this.emit('cluster_status', ...args)
+    );
+    this.clientService.on('connected', () => this.emit('connected'));
+    this.clientService.on('data_pushed', () => this.emit('data_pushed'));
+    this.clientService.on('disconnected', code =>
+      this.emit('disconnected', code)
+    );
   }
 
   public connect() {
     this.clientService.connect();
+  }
+  public startCCC(to: number | 'all', data: string) {
+    return this.clientService.startCCC(to, data);
   }
 }
