@@ -1,6 +1,6 @@
 /// <reference types="node"/>
 import EventEmitter from 'events';
-import Clients, { ClientOptions } from './dist/clients';
+import Clients, { ClientOptions } from './clients';
 export declare let __Schema: any;
 export declare const defaultOptions: GenericOptions;
 export declare interface Data {
