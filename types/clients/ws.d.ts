@@ -1,6 +1,11 @@
 /// <reference types="node" />
 import EventEmitter from 'events';
-import { GenericCloseCodes, ClientService, GenericOptions } from '../index.d';
+import {
+  GenericCloseCodes,
+  ClientService,
+  GenericOptions,
+  DataTypes
+} from '../index.d';
 export interface WSOptions {
   url: string;
 }
@@ -10,7 +15,7 @@ export default class WSService extends EventEmitter implements ClientService {
   private client;
   serviceOptions: WSOptions;
   options: GenericOptions;
-  sendData(type: 0 | 1 | 2, data: any): Promise<void>;
+  sendData(type: DataTypes, data: any): Promise<void>;
   disconnect(code: GenericCloseCodes): void;
   private __disconnect;
   startCCC(
@@ -110,7 +115,7 @@ export declare namespace ClientStructures {
     cluster: number;
   }
   interface SendData {
-    type: 0 | 1 | 2;
+    type: DataTypes;
     data: any;
   }
   interface CCCBegin {

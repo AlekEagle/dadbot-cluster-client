@@ -29,7 +29,7 @@ export declare interface GenericOptions {
     count: number;
     id: number;
   };
-  reconnect: boolean;
+  reconnect?: boolean;
 }
 
 export declare interface Constructable<T> {
@@ -48,7 +48,7 @@ export declare class ClientService extends EventEmitter {
     ...args: Parameters<Events[U]>
   ): boolean;
   name: string;
-  sendData(type: 0 | 1 | 2, data: any): Promise<boolean>;
+  sendData(type: DataTypes, data: any): Promise<boolean>;
   disconnect(code: GenericCloseCodes): void;
   startCCC(
     to: number | 'all',

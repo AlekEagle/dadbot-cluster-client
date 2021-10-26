@@ -28,7 +28,7 @@ export declare interface GenericOptions {
     count: number;
     id: number;
   };
-  reconnect: boolean;
+  reconnect?: boolean;
 }
 export declare interface Constructable<T> {
   new (...args: any): T;
