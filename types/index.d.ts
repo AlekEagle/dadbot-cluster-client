@@ -3,8 +3,13 @@ import EventEmitter from 'events';
 import Clients, { ClientOptions } from './clients';
 export declare let __Schema: any;
 export declare const defaultOptions: GenericOptions;
+export declare enum DataTypes {
+  ClusterData = 0,
+  Log = 1,
+  Error = 2
+}
 export declare interface Data {
-  type: 0 | 1 | 2;
+  type: DataTypes;
   data: any;
 }
 export declare enum GenericCloseCodes {
@@ -23,6 +28,7 @@ export declare interface GenericOptions {
     count: number;
     id: number;
   };
+  reconnect: boolean;
 }
 export declare interface Constructable<T> {
   new (...args: any): T;
@@ -39,7 +45,7 @@ export declare class ClientService extends EventEmitter {
     ...args: Parameters<Events[U]>
   ): boolean;
   name: string;
-  sendData(type: 0 | 1 | 2, data: any): Promise<void>;
+  sendData(type: DataTypes, data: any): Promise<void>;
   disconnect(code: GenericCloseCodes): void;
   startCCC(
     to: number | 'all',
@@ -80,4 +86,5 @@ export default class Client<
     data: string | string[];
   }>;
   disconnect(): void;
+  sendData(type: DataTypes, data: any): Promise<boolean>;
 }

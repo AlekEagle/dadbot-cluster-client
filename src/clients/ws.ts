@@ -1,7 +1,13 @@
 import ws from 'ws';
 import EventEmitter from 'events';
-import { GenericCloseCodes, ClientService, GenericOptions } from '../types';
+import {
+  GenericCloseCodes,
+  ClientService,
+  GenericOptions,
+  DataTypes
+} from '../types';
 import { defaultOptions, __Schema } from '..';
+let reconnectTimeout = 5000;
 
 function deepCompareJSON(arg1: any, arg2: any): boolean {
   if (
@@ -69,7 +75,33 @@ export default class WSService extends EventEmitter implements ClientService {
     url: 'ws://localhost:8000/manager'
   };
   public options: GenericOptions = defaultOptions;
-  async sendData(type: 0 | 1 | 2, data: any) {}
+  sendData(type: DataTypes, data: any) {
+    return new Promise<boolean>((resolve, reject) => {
+      this.client.sendPayload({
+        op: ClientOpCodes.SendData,
+        d: {
+          data,
+          type
+        }
+      } as PayloadStructure<ClientStructures.SendData>);
+
+      let dataOKHandler = (data: ws.RawData) => {
+        let dataParsed: PayloadStructure<ServerStructures.DataACK>;
+        try {
+          dataParsed = JSON.parse(data.toString());
+        } catch (err) {
+          this.__disconnect(WSClientCloseCode.Abnormal);
+          reject('Server responded with malformed response.');
+          return;
+        }
+
+        if (dataParsed.op !== ServerOpCodes.DataACK) return;
+        resolve(dataParsed.d.success);
+        this.client.off('message', dataOKHandler);
+      };
+      this.client.on('message', dataOKHandler);
+    });
+  }
   disconnect(code: GenericCloseCodes) {
     this.__disconnect(genericToWSCloseCode(code));
   }
@@ -131,12 +163,17 @@ export default class WSService extends EventEmitter implements ClientService {
     if (options) Object.assign(this.options, options);
     if (serviceOptions) Object.assign(this.serviceOptions, serviceOptions);
   }
+
   connect() {
     return new Promise<void>((resolve, reject) => {
+      if (this.client.readyState === this.client.OPEN)
+        reject('Already connected.');
       this.client = createWSClient(this.serviceOptions.url);
-      this.client.once('close', code => {
-        reject(code);
-      });
+      let rejectWithCodeOrError = (rej: number | Error) => {
+        reject(rej);
+      };
+      this.client.once('close', rejectWithCodeOrError);
+      this.client.once('error', rejectWithCodeOrError);
       this.client.once('message', data => {
         let parsed: PayloadStructure<ServerStructures.Identify>;
         try {
@@ -177,6 +214,10 @@ export default class WSService extends EventEmitter implements ClientService {
               this.handleHeartbeat();
 
               this.client.on('message', this.handleServerPayload.bind(this));
+              this.client.off('close', rejectWithCodeOrError);
+              this.client.off('error', rejectWithCodeOrError);
+              this.client.on('close', this.handleCloseOrError.bind(this));
+              this.client.on('error', this.handleCloseOrError.bind(this));
               this.emit('connected');
               resolve();
             } else {
@@ -192,6 +233,20 @@ export default class WSService extends EventEmitter implements ClientService {
         }
       });
     });
+  }
+
+  private reconnectWithDelay() {
+    if (!this.options.reconnect) return;
+    setTimeout(() => {
+      this.connect();
+    }, reconnectTimeout);
+    reconnectTimeout += reconnectTimeout / 4;
+  }
+
+  private handleCloseOrError(out: number | Error) {
+    this.reconnectWithDelay();
+    clearTimeout(heartbeatTimeout);
+    this.emit('disconnect', out);
   }
 
   private handleHeartbeat() {
@@ -253,7 +308,7 @@ export default class WSService extends EventEmitter implements ClientService {
         break;
       case ServerOpCodes.CCCConfirm:
       case ServerOpCodes.CCCReturn:
-      case ServerOpCodes.DataOK:
+      case ServerOpCodes.DataACK:
         break;
       default:
         this.__disconnect(WSClientCloseCode.Abnormal);
@@ -264,7 +319,7 @@ export default class WSService extends EventEmitter implements ClientService {
 export enum ServerOpCodes {
   Heartbeat,
   Identify,
-  DataOK,
+  DataACK,
   CCCPropagate,
   CCCReturn,
   CCCConfirm,
@@ -348,7 +403,7 @@ export namespace ClientStructures {
     cluster: number;
   }
   export interface SendData {
-    type: 0 | 1 | 2;
+    type: DataTypes;
     data: any;
   }
   export interface CCCBegin {

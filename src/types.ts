@@ -1,7 +1,13 @@
 import EventEmitter from 'node:events';
 
+export declare enum DataTypes {
+  ClusterData = 0,
+  Log = 1,
+  Error = 2
+}
+
 export declare interface Data {
-  type: 0 | 1 | 2;
+  type: DataTypes;
   data: any;
 }
 
@@ -23,6 +29,7 @@ export declare interface GenericOptions {
     count: number;
     id: number;
   };
+  reconnect: boolean;
 }
 
 export declare interface Constructable<T> {
@@ -41,7 +48,7 @@ export declare class ClientService extends EventEmitter {
     ...args: Parameters<Events[U]>
   ): boolean;
   name: string;
-  sendData(type: 0 | 1 | 2, data: any): Promise<void>;
+  sendData(type: 0 | 1 | 2, data: any): Promise<boolean>;
   disconnect(code: GenericCloseCodes): void;
   startCCC(
     to: number | 'all',

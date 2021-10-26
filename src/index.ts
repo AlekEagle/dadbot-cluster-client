@@ -1,11 +1,17 @@
 import EventEmitter from 'events';
 import Clients, { ClientOptions } from './clients';
-import { ClientService, GenericCloseCodes, GenericOptions } from './types';
+import {
+  ClientService,
+  GenericCloseCodes,
+  GenericOptions,
+  DataTypes
+} from './types';
 
 export let __Schema: any;
 
 export const defaultOptions: GenericOptions = {
-  cluster: { count: -1, id: -1 }
+  cluster: { count: -1, id: -1 },
+  reconnect: true
 };
 
 export default class Client<
@@ -56,5 +62,9 @@ export default class Client<
   }
   public disconnect() {
     this.clientService.disconnect(GenericCloseCodes.OK);
+  }
+
+  public sendData(type: DataTypes, data: any) {
+    return this.clientService.sendData(type, data);
   }
 }
