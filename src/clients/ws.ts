@@ -166,7 +166,7 @@ export default class WSService extends EventEmitter implements ClientService {
 
   connect() {
     return new Promise<void>((resolve, reject) => {
-      if (this.client.readyState === this.client.OPEN)
+      if (this.client && this.client.readyState === this.client.OPEN)
         reject('Already connected.');
       this.client = createWSClient(this.serviceOptions.url);
       let rejectWithCodeOrError = (rej: number | Error) => {
