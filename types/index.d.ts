@@ -12,7 +12,7 @@ export declare interface Data {
   type: DataTypes;
   data: any;
 }
-export declare enum GenericCloseCodes {
+export enum GenericCloseCodes {
   OK,
   ClientError,
 }
