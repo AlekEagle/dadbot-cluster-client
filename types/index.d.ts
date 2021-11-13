@@ -1,12 +1,12 @@
 /// <reference types="node"/>
-import EventEmitter from 'events';
-import Clients, { ClientOptions } from './clients';
+import EventEmitter from "events";
+import Clients, { ClientOptions } from "./clients";
 export declare let __Schema: any;
 export declare const defaultOptions: GenericOptions;
-export declare enum DataTypes {
+export enum DataTypes {
   ClusterData = 0,
   Log = 1,
-  Error = 2
+  Error = 2,
 }
 export declare interface Data {
   type: DataTypes;
@@ -14,7 +14,7 @@ export declare interface Data {
 }
 export declare enum GenericCloseCodes {
   OK,
-  ClientError
+  ClientError,
 }
 export declare interface Events {
   connected: () => void;
@@ -48,7 +48,7 @@ export declare class ClientService extends EventEmitter {
   sendData(type: DataTypes, data: any): Promise<void>;
   disconnect(code: GenericCloseCodes): void;
   startCCC(
-    to: number | 'all',
+    to: number | "all",
     data: string
   ): Promise<{
     id: string;
@@ -79,7 +79,7 @@ export default class Client<
   );
   connect(): void;
   startCCC(
-    to: number | 'all',
+    to: number | "all",
     data: string
   ): Promise<{
     id: string;
