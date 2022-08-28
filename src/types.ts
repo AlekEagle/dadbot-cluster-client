@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 
-export declare enum DataTypes {
+export enum DataTypes {
   ClusterData = 0,
   Log = 1,
   Error = 2
@@ -11,7 +11,7 @@ export declare interface Data {
   data: any;
 }
 
-export declare enum GenericCloseCodes {
+export enum GenericCloseCodes {
   OK,
   ClientError
 }
