@@ -107,6 +107,11 @@ export default class WSService extends EventEmitter implements ClientService {
   }
   private __disconnect(code: WSClientCloseCode) {
     this.client.close(code);
+    if (code === WSClientCloseCode.Normal) {
+      // Client is closing the connection, so we can stop the heartbeat
+      clearInterval(heartbeatInterval);
+      clearTimeout(heartbeatTimeout);
+    }
     this.emit('disconnected', code);
   }
   startCCC(
