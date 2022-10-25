@@ -1,0 +1,13 @@
+{
+    "folders": [
+      {
+        "path": "./"
+      },
+      {
+        "path": "../dadbot"
+      },
+      {
+        "path": "../dadbot-cluster-manager"
+      }
+    ]
+  }
