@@ -72,7 +72,7 @@ export default class WSService extends EventEmitter implements ClientService {
   private token: string;
   private client: __WSClient;
   public serviceOptions: WSOptions = {
-    url: 'ws://localhost:8000/manager'
+    url: `ws://${process.env.MANAGER_HOST || 'localhost'}:${process.env.MANAGER_PORT || '8080'}/manager`
   };
   public options: GenericOptions = defaultOptions;
   sendData(type: DataTypes, data: any) {
