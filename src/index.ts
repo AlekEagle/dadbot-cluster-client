@@ -60,7 +60,7 @@ export default class Client<
   public startCCC(to: number | 'all', data: string) {
     return this.clientService.startCCC(to, data);
   }
-  public disconnect() {
+  public disconnect(reconnect: boolean = false) {
     this.clientService.disconnect(GenericCloseCodes.OK);
   }
 

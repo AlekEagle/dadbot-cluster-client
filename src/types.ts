@@ -49,7 +49,7 @@ export declare class ClientService extends EventEmitter {
   ): boolean;
   name: string;
   sendData(type: DataTypes, data: any): Promise<boolean>;
-  disconnect(code: GenericCloseCodes): void;
+  disconnect(code: GenericCloseCodes, reconnect?: boolean): void;
   startCCC(
     to: number | 'all',
     data: string

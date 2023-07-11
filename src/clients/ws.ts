@@ -90,7 +90,7 @@ export default class WSService extends EventEmitter implements ClientService {
         try {
           dataParsed = JSON.parse(data.toString());
         } catch (err) {
-          this.__disconnect(WSClientCloseCode.Abnormal);
+          this.__disconnect(WSClientCloseCode.Abnormal, true);
           reject('Server responded with malformed response.');
           return;
         }
@@ -102,15 +102,13 @@ export default class WSService extends EventEmitter implements ClientService {
       this.client.on('message', dataOKHandler);
     });
   }
-  disconnect(code: GenericCloseCodes) {
-    this.__disconnect(genericToWSCloseCode(code));
+  disconnect(code: GenericCloseCodes, reconnect = false) {
+    this.__disconnect(genericToWSCloseCode(code), reconnect);
   }
-  private __disconnect(code: WSClientCloseCode) {
+  private __disconnect(code: WSClientCloseCode, reconnect: boolean) {
     this.client.close(code);
-    if (code === WSClientCloseCode.Normal) {
-      // Client is closing the connection, so we can stop the heartbeat
-      clearInterval(heartbeatInterval);
-      clearTimeout(heartbeatTimeout);
+    if (!reconnect) {
+      this.options.reconnect = false;
     }
     this.emit('disconnected', code);
   }
@@ -128,7 +126,7 @@ export default class WSService extends EventEmitter implements ClientService {
         try {
           confParsed = JSON.parse(confData.toString());
         } catch (err) {
-          this.__disconnect(WSClientCloseCode.Abnormal);
+          this.__disconnect(WSClientCloseCode.Abnormal, true);
           reject('Server responded with malformed response.');
           return;
         }
@@ -140,7 +138,7 @@ export default class WSService extends EventEmitter implements ClientService {
             try {
               retParsed = JSON.parse(retData.toString());
             } catch (err) {
-              this.__disconnect(WSClientCloseCode.Abnormal);
+              this.__disconnect(WSClientCloseCode.Abnormal, true);
               reject('Server responded with malformed response.');
               return;
             }
@@ -210,7 +208,7 @@ export default class WSService extends EventEmitter implements ClientService {
             try {
               parsed = JSON.parse(data.toString());
             } catch (err) {
-              this.__disconnect(WSClientCloseCode.Abnormal);
+              this.__disconnect(WSClientCloseCode.Abnormal, true);
               reject('Server responded with malformed response.');
               return;
             }
@@ -226,13 +224,13 @@ export default class WSService extends EventEmitter implements ClientService {
               this.emit('connected');
               resolve();
             } else {
-              this.__disconnect(WSClientCloseCode.Abnormal);
+              this.__disconnect(WSClientCloseCode.Abnormal, true);
               reject('Server responded with invalid Op code.');
               return;
             }
           });
         } else {
-          this.__disconnect(WSClientCloseCode.Abnormal);
+          this.__disconnect(WSClientCloseCode.Abnormal, true);
           reject('Server responded with invalid Op code.');
           return;
         }
@@ -263,7 +261,7 @@ export default class WSService extends EventEmitter implements ClientService {
         } as PayloadStructure<ClientStructures.Heartbeat>);
     }, heartbeatInterval / 2);
     heartbeatTimeout = setTimeout(() => {
-      this.__disconnect(WSClientCloseCode.Normal);
+      this.__disconnect(WSClientCloseCode.Normal, true);
     }, heartbeatInterval);
   }
 
@@ -272,12 +270,12 @@ export default class WSService extends EventEmitter implements ClientService {
     try {
       parsed = JSON.parse(data.toString());
     } catch (err) {
-      this.__disconnect(WSClientCloseCode.Abnormal);
+      this.__disconnect(WSClientCloseCode.Abnormal, true);
       return;
     }
     switch (parsed.op) {
       case ServerOpCodes.Identify:
-        this.__disconnect(WSClientCloseCode.Abnormal);
+        this.__disconnect(WSClientCloseCode.Abnormal, true);
         break;
       case ServerOpCodes.Heartbeat:
         this.handleHeartbeat();
@@ -316,7 +314,7 @@ export default class WSService extends EventEmitter implements ClientService {
       case ServerOpCodes.DataACK:
         break;
       default:
-        this.__disconnect(WSClientCloseCode.Abnormal);
+        this.__disconnect(WSClientCloseCode.Abnormal, true);
     }
   }
 }
