@@ -1,7 +1,7 @@
 import WSService, { WSOptions } from './ws';
 
 let Clients = {
-  ws: WSService
+  ws: WSService,
 };
 
 export type ClientOptions = {

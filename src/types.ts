@@ -1,9 +1,9 @@
 import EventEmitter from 'node:events';
 
 export enum DataTypes {
-  ClusterData = 0,
-  Log = 1,
-  Error = 2
+  Stats,
+  Logs,
+  Errors,
 }
 
 export declare interface Data {
@@ -13,7 +13,7 @@ export declare interface Data {
 
 export enum GenericCloseCodes {
   OK,
-  ClientError
+  ClientError,
 }
 
 export declare interface Events {
@@ -49,10 +49,10 @@ export declare class ClientService extends EventEmitter {
   ): boolean;
   name: string;
   sendData(type: DataTypes, data: any): Promise<boolean>;
-  disconnect(code: GenericCloseCodes, reconnect?: boolean): void;
+  disconnect(code: GenericCloseCodes): void;
   startCCC(
     to: number | 'all',
-    data: string
+    data: string,
   ): Promise<{ id: string; data: string | string[] }>;
   connect(): Promise<void>;
 }

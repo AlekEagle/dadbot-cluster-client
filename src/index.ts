@@ -4,19 +4,19 @@ import {
   ClientService,
   GenericCloseCodes,
   GenericOptions,
-  DataTypes
+  DataTypes,
 } from './types';
 
 export let __Schema: any;
 
 export const defaultOptions: GenericOptions = {
   cluster: { count: -1, id: -1 },
-  reconnect: true
+  reconnect: true,
 };
 
 export default class Client<
   C extends keyof typeof Clients,
-  O extends ClientOptions[C]
+  O extends ClientOptions[C],
 > extends EventEmitter {
   private clientService: ClientService;
   constructor(
@@ -28,7 +28,7 @@ export default class Client<
         },
     token: string,
     schema: any,
-    options: GenericOptions
+    options: GenericOptions,
   ) {
     super();
     __Schema = schema;
@@ -38,19 +38,19 @@ export default class Client<
       this.clientService = new Clients[protocol.name](
         token,
         options,
-        protocol.options
+        protocol.options,
       );
 
     this.clientService.on('CCCQuery', (data, cb) =>
-      this.emit('CCCQuery', data, cb)
+      this.emit('CCCQuery', data, cb),
     );
     this.clientService.on('cluster_status', (...args) =>
-      this.emit('cluster_status', ...args)
+      this.emit('cluster_status', ...args),
     );
     this.clientService.on('connected', () => this.emit('connected'));
     this.clientService.on('data_pushed', () => this.emit('data_pushed'));
-    this.clientService.on('disconnected', code =>
-      this.emit('disconnected', code)
+    this.clientService.on('disconnected', (code) =>
+      this.emit('disconnected', code),
     );
   }
 
@@ -60,7 +60,7 @@ export default class Client<
   public startCCC(to: number | 'all', data: string) {
     return this.clientService.startCCC(to, data);
   }
-  public disconnect(reconnect: boolean = false) {
+  public disconnect() {
     this.clientService.disconnect(GenericCloseCodes.OK);
   }
 
