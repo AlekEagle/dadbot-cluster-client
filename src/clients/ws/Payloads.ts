@@ -182,7 +182,7 @@ export function parsePayload<T extends ServerStructures>(data: string): T {
   if (typeof parsed.op !== 'number') {
     throw new InvalidPayloadError('Missing op code');
   }
-  if (ClientOpCodes[parsed.op] === undefined) {
+  if (ServerOpCodes[parsed.op] === undefined) {
     throw new InvalidOpCodeError('Invalid op code');
   }
   return parsed;
